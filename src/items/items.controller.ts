@@ -6,12 +6,16 @@ import {
   Get,
   Param,
   Post,
-  NotFoundException,
   Put,
   Delete,
   ParseUUIDPipe,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import { CrateItemDto } from './dto/create-item.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { Request as ExpressRequest } from 'express';
+import { RequestUser } from '../auth/types/requestUser';
 
 @Controller('items')
 export class ItemsController {
@@ -24,20 +28,20 @@ export class ItemsController {
 
   @Get(':id')
   async findById(@Param('id', ParseUUIDPipe) id: string): Promise<Item> {
-    const item = await this.itemsService.findById(id);
-    if (!item) {
-      throw new NotFoundException('対象のアイテムが見つかりません');
-    }
-
-    return item;
+    return await this.itemsService.findById(id);
   }
 
   @Post()
-  async create(@Body() createItemDto: CrateItemDto): Promise<Item> {
-    return await this.itemsService.create(createItemDto);
+  @UseGuards(AuthGuard('jwt')) // JWT認証を有効にする
+  async create(
+    @Body() createItemDto: CrateItemDto,
+    @Request() req: ExpressRequest & { user: RequestUser },
+  ): Promise<Item> {
+    return await this.itemsService.create(createItemDto, req.user.id);
   }
 
   @Put(':id')
+  @UseGuards(AuthGuard('jwt'))
   async updateStatus(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<Item | null> {
@@ -45,7 +49,11 @@ export class ItemsController {
   }
 
   @Delete(':id')
-  async delete(@Param('id', ParseUUIDPipe) id: string) {
-    return await this.itemsService.delete(id);
+  @UseGuards(AuthGuard('jwt'))
+  async delete(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: ExpressRequest & { user: RequestUser },
+  ) {
+    return await this.itemsService.delete(id, req.user.id);
   }
 }

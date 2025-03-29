@@ -1,5 +1,5 @@
-import { PrismaService } from 'src/prisma/prisma.service';
-import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Item, ItemStatus } from '@prisma/client';
 import { CrateItemDto } from './dto/create-item.dto';
 
@@ -11,15 +11,21 @@ export class ItemsService {
     return await this.prismaService.item.findMany();
   }
 
-  async findById(id: string): Promise<Item | null> {
-    return await this.prismaService.item.findUnique({
+  async findById(id: string): Promise<Item> {
+    const item = await this.prismaService.item.findUnique({
       where: {
         id,
       },
     });
+
+    if (!item) {
+      throw new NotFoundException('対象のアイテムが見つかりません');
+    }
+
+    return item;
   }
 
-  async create(crateItemDto: CrateItemDto): Promise<Item> {
+  async create(crateItemDto: CrateItemDto, userId: string): Promise<Item> {
     const { name, price, description } = crateItemDto;
     return await this.prismaService.item.create({
       data: {
@@ -27,11 +33,12 @@ export class ItemsService {
         price,
         description,
         status: ItemStatus.ON_SALE,
+        userId,
       },
     });
   }
 
-  async updateStatus(id: string): Promise<Item | null> {
+  async updateStatus(id: string): Promise<Item> {
     return await this.prismaService.item.update({
       data: {
         status: ItemStatus.SOLD_OUT,
@@ -42,10 +49,11 @@ export class ItemsService {
     });
   }
 
-  async delete(id: string) {
+  async delete(id: string, userId: string): Promise<Item> {
     return await this.prismaService.item.delete({
       where: {
         id,
+        userId,
       },
     });
   }
