@@ -1,4 +1,4 @@
-import { Item } from './items.model';
+import { Item } from '@prisma/client';
 import { ItemsService } from './items.service';
 import {
   Body,
@@ -18,13 +18,13 @@ export class ItemsController {
   constructor(private readonly itemsService: ItemsService) {}
 
   @Get()
-  findAll() {
-    return this.itemsService.findAll();
+  async findAll(): Promise<Item[]> {
+    return await this.itemsService.findAll();
   }
 
   @Get(':id')
-  findById(@Param('id', ParseUUIDPipe) id: string): Item {
-    const item = this.itemsService.findById(id);
+  async findById(@Param('id', ParseUUIDPipe) id: string): Promise<Item> {
+    const item = await this.itemsService.findById(id);
     if (!item) {
       throw new NotFoundException('対象のアイテムが見つかりません');
     }
@@ -33,22 +33,19 @@ export class ItemsController {
   }
 
   @Post()
-  create(@Body() createItemDto: CrateItemDto): Item {
-    return this.itemsService.create(createItemDto);
+  async create(@Body() createItemDto: CrateItemDto): Promise<Item> {
+    return await this.itemsService.create(createItemDto);
   }
 
   @Put(':id')
-  updateStatus(@Param('id', ParseUUIDPipe) id: string): Item {
-    const item = this.itemsService.updateStatus(id);
-    if (!item) {
-      throw new NotFoundException('対象のアイテムが見つかりません');
-    }
-
-    return item;
+  async updateStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<Item | null> {
+    return await this.itemsService.updateStatus(id);
   }
 
   @Delete(':id')
-  delete(@Param('id', ParseUUIDPipe) id: string) {
-    this.itemsService.delete(id);
+  async delete(@Param('id', ParseUUIDPipe) id: string) {
+    return await this.itemsService.delete(id);
   }
 }

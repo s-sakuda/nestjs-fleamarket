@@ -1,42 +1,52 @@
+import { PrismaService } from 'src/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
-import { Item } from './items.model';
+import { Item, ItemStatus } from '@prisma/client';
 import { CrateItemDto } from './dto/create-item.dto';
-import { v4 as uuid } from 'uuid';
 
 @Injectable()
 export class ItemsService {
-  private items: Item[] = [];
+  constructor(private readonly prismaService: PrismaService) {}
 
-  findAll(): Item[] {
-    return this.items;
+  async findAll(): Promise<Item[]> {
+    return await this.prismaService.item.findMany();
   }
 
-  findById(id: string): Item | null {
-    return this.items.find((item) => item.id === id) ?? null;
+  async findById(id: string): Promise<Item | null> {
+    return await this.prismaService.item.findUnique({
+      where: {
+        id,
+      },
+    });
   }
 
-  create(crateItemDto: CrateItemDto): Item {
-    const item: Item = {
-      ...crateItemDto,
-      id: uuid(),
-      status: 'NO_SALE',
-    };
-
-    this.items.push(item);
-    return item;
+  async create(crateItemDto: CrateItemDto): Promise<Item> {
+    const { name, price, description } = crateItemDto;
+    return await this.prismaService.item.create({
+      data: {
+        name,
+        price,
+        description,
+        status: ItemStatus.ON_SALE,
+      },
+    });
   }
 
-  updateStatus(id: string): Item | null {
-    const item = this.findById(id);
-    if (!item) {
-      return null;
-    }
-
-    item.status = 'SOLD_OUT';
-    return item;
+  async updateStatus(id: string): Promise<Item | null> {
+    return await this.prismaService.item.update({
+      data: {
+        status: ItemStatus.SOLD_OUT,
+      },
+      where: {
+        id,
+      },
+    });
   }
 
-  delete(id: string) {
-    this.items = this.items.filter((item) => item.id !== id);
+  async delete(id: string) {
+    return await this.prismaService.item.delete({
+      where: {
+        id,
+      },
+    });
   }
 }
